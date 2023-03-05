@@ -1,76 +1,49 @@
 import numpy as np
 from typing import List
+from biliFile_with_steganography.utils.iterator import *
 
 
 class Steganography_base:
     '''
     图像隐写算法接口类
-
-    如果是编码信息，则通过__init__创建类
-    如果是解码信息，通过decode_header创建类
     '''
 
     def __init__(self,
                  args: str):
         raise NotImplementedError()
 
-    def encode_header(self,
-                      image: List[np.array],
-                      *,
-                      loop: bool = False) -> List[np.array]:
-        '''
-        从图像中解码数据头部信息
-
-        Args:
-            image (List[np.array]): 图像
-            loop (bool, optional): 是否使用整数倍的载波图像
-
-        Returns:
-            List[np.array]: 嵌入后的图像
-        '''
-        raise NotImplementedError()
-
-    @classmethod
-    def decode_header(cls,
-                      frame: np.array):
-        '''
-        此函数应返回一个编码时用的类
-        '''
-        raise NotImplementedError()
-
     def encode(self,
-               image: List[np.array],
-               data: bytes,
+               image: FrameReadIterator,
+               data: DataReadIterator,
+               dst: FrameWriteIterator,
                *,
-               loop: bool = False) -> List[np.array]:
+               loop: bool = True) -> bool:
         '''
-        将数据data嵌入到图像image中并返回
-        此函数会根据初始化时的设置，来对数据编码成若干个图像
-        直到编码完成
-
-        会循环使用image中的图像
+        不断读取图像帧、不断读取数据，然后调制，将调制后的帧写入目标位置
 
         Args:
-            List[np.array]: 载波图像列表
-            data (np.array): 数据
-            loop (bool, optional): 是否使用整数倍的载波图像
-
+            image (FrameReadIterator): 读取图像的迭代器
+            data (DataReadIterator): 读取数据的迭代器
+            dst (FrameWriteIterator): 写入图像的迭代器
+            loop (bool, optional): 是否重复使用图像. Defaults to True.
 
         Returns:
-            List[np.array]: 嵌入后图像列表
+            bool: 是否写入完成
         '''
         raise NotImplementedError()
 
     def decode(self,
-               image: np.array,
-               **kwargs) -> bytes:
+               image: FrameReadIterator,
+               dst: DataWriteIterator,
+               **kwargs) -> bool:
         '''
         从图像中解码数据
 
         Args:
-            image (np.array): 图像
+            image (FrameReadIterator): 读取图像的迭代器
+            dst (DataWriteIterator): 写入数据的迭代器
 
         Returns:
-            bytes: 解码后的数据
+            bool: 是否完成
         '''
         raise NotImplementedError()
