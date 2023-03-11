@@ -1,4 +1,4 @@
-from biliFile_with_steganography.utils.iterator import FrameReadIterator, FrameWriteIterator
+from File_with_steganography.utils.iterator import FrameReadIterator, FrameWriteIterator
 import cv2
 fourcc = cv2.VideoWriter_fourcc(*"mp4v")
 

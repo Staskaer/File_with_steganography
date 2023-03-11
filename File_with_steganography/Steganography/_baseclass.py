@@ -1,6 +1,6 @@
 import numpy as np
 from typing import List
-from biliFile_with_steganography.utils.iterator import *
+from File_with_steganography.utils.iterator import *
 
 
 class Steganography_base:

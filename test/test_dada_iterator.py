@@ -1,4 +1,4 @@
-from biliFile_with_steganography.utils.iterator import DataReadIterator, DataWriteIterator
+from File_with_steganography.utils.iterator import DataReadIterator, DataWriteIterator
 # 计算两个文件md5值是否相同
 
 import hashlib

@@ -1,4 +1,4 @@
-from biliFile_with_steganography.utils.fileio import FileIO
+from File_with_steganography.utils.fileio import FileIO
 
 
 def test():
