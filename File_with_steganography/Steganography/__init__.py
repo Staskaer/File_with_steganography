@@ -1,8 +1,7 @@
 import numpy as np
-from .LSB import LSB
 from typing import Tuple
 
-HEADER_MAGIC = b'BILIBILI'
+HEADER_MAGIC = b'qwerasdf'
 CONTENT_MAGIC = b'Staskaer'
 EMPTY_MAGIC = b'12345678'
 
