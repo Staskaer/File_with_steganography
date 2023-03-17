@@ -1,4 +1,5 @@
 import threading
+import os
 
 
 class DataReadIterator:
@@ -9,6 +10,10 @@ class DataReadIterator:
     def __init__(self, file: str) -> None:
         self.f = open(file, 'rb')
         self.file = file
+
+    @property
+    def size(self):
+        return os.path.getsize(self.file)
 
     def reload(self):
         '''
@@ -21,17 +26,33 @@ class DataReadIterator:
         self.f.close()
 
     def __iter__(self):
+        '''
+        每次读取count字节数据
+        '''
+
         return self
 
     def __next__(self):
         '''
-        每次读取512字节
+        每次读取指定数目字节
         '''
-        data = self.f.read(512)
+        data = self.f.read(self.count)
         if data:
             return data
         else:
             raise StopIteration
+
+    def read(self, count: int = 512):
+        '''
+        自定义的迭代器接口，每次从这里读取数据
+
+        如下：
+        for data in iterator.read(512):
+            print(data)
+        会每次读取出512字节的数据
+        '''
+        self.count = count
+        return self.__iter__()
 
 
 class DataWriteIterator:
