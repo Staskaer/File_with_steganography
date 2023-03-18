@@ -58,21 +58,28 @@ class _LSB(Steganography_base):
                loop: int = True) -> bool:
         self.frame_size = image.frame_size
         # 计算每帧能存放多少数据
-        data_total_pre_frame = int(
-            self.frame_size[0]/self.kernel)*int(self.frame_size[1]/self.kernel)/8
+        data_total_pre_frame = int(int(
+            self.frame_size[0]/self.kernel)*int(self.frame_size[1]/self.kernel)/8)
+        # print(data_total_pre_frame)
         # 计算每帧能存放多少荷载数据
-        # 64位头部信息，32*2位置信息，32位长度前缀，32位哈希值
-        data_payload_pre_frame = data_total_pre_frame - 64 - 32 * 2 - 32 - 32
+        # 64位头部信息，32*2位置信息，32位长度前缀，256位哈希值
+        data_payload_pre_frame = data_total_pre_frame - 8 - 4 * 2 - 4 - 32
+        assert data_payload_pre_frame > 0, '载波太小，无法存放数据'
 
         # 获取总尺寸
         file_total_size = data.size
         for index, d in enumerate(data.read(data_payload_pre_frame)):
+            if len(d) < data_payload_pre_frame:
+                # 填充数据
+                d = d + b'\x00' * (data_payload_pre_frame - len(d))
             # 每次拿出数据进行调制
             # 首先计算总页数和当前页数
             total_page = 1 + file_total_size // data_payload_pre_frame
             current_page = index + 1
             # 计算哈希值
-            h = hashlib.md5().update(d).hexdigest().encode("utf-8")
+            h = hashlib.md5()
+            h.update(d)
+            h = h.hexdigest().encode("utf-8")
             # 给出写入数据
             # 64位头部信息，32*2位置信息，32位长度前缀，数据，32位哈希值
             write_data = CONTENT_MAGIC + \
@@ -81,16 +88,27 @@ class _LSB(Steganography_base):
                 data_payload_pre_frame.to_bytes(4, 'little') +\
                 d +\
                 h
-
-            for frame in image:
-                frame1 = self._do_encode(frame, write_data)
-                dst.write(frame1)
-                frame2 = self._do_encode(frame, write_data)
-                dst.write(frame2)
-            if loop:
-                image.reload()
-            else:
-                raise NoEnoughFrameException('没有足够的帧来存放数据')
+            # 写入两帧
+            for i in range(2):
+                try:
+                    frame = next(image)
+                except:
+                    if loop:
+                        image.reload()
+                        frame = next(image)
+                    else:
+                        raise NoEnoughFrameException('没有足够的帧来存放数据')
+                frame = self._do_encode(frame, write_data)
+                dst.write(frame)
+            # for frame in image:
+            #     frame1 = self._do_encode(frame, write_data)
+            #     dst.write(frame1)
+            #     frame2 = self._do_encode(frame, write_data)
+            #     dst.write(frame2)
+            # if loop:
+            #     image.reload()
+            # else:
+            #     raise NoEnoughFrameException('没有足够的帧来存放数据')
         for frame in image:
             # 剩余部分直接写入即可
             dst.write(frame)
@@ -108,8 +126,8 @@ class _LSB(Steganography_base):
         image = image.astype(np.uint8)
         image = image*10
         # 用于存放数据的矩阵
-        dst_size = (self.frame_size[0]//self.kernel,
-                    self.frame_size[1]//self.kernel)
+        dst_size = (self.frame_size[1]//self.kernel,
+                    self.frame_size[0]//self.kernel)
         data_array = np.frombuffer(data, dtype=np.uint8)
         data_array = np.unpackbits(data_array).reshape(dst_size)
         data_array = np.repeat(data_array, self.kernel, axis=0)
@@ -121,6 +139,8 @@ class _LSB(Steganography_base):
                              (0, image.shape[1]-dst_size[1]*self.kernel)),
                             'constant')
         result = image + data_array
+
+        # data = self._do_decode(result)
         return result
 
     def decode(self,
@@ -152,7 +172,9 @@ class _LSB(Steganography_base):
             data_length = int.from_bytes(data[16:20], 'little')
             hash_value = data[-4:].decode('utf-8')
             data = data[20:20+data_length]
-            if hash_value == hashlib.md5().update(data).hexdigest():
+            h = hashlib.md5()
+            h.update(data)
+            if hash_value == h.hexdigest():
                 # 此时表明数据正确
                 dst.write(data)
                 parsed_positon += 1
@@ -165,6 +187,8 @@ class _LSB(Steganography_base):
         '''
         用于对单帧进行解码的函数
         '''
+        # image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        image = image % 10
         kernel = np.ones((self.kernel, self.kernel), dtype=np.uint8)
         result = convolve2d(image, kernel, mode='valid')
         result = result[::self.kernel, ::self.kernel]/self.kernel**2
